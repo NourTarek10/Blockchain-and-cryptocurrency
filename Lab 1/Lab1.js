@@ -3,21 +3,20 @@
 const SHOW = "SHOW_PRICE";
 const UPDATE = "UPDATE_USD_PRICE";
 
-let fs = require('fs');
-let EventEmitter = require('events');
+let fs = require("fs");
+let EventEmitter = require("events");
 
 function readJsonFromFile(fileName) {
     try {
-        let data = fs.readFileSync(fileName, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error("Error reading or parsing JSON file:", error);
-        return null;
+        let data = fs.readFileSync(fileName, "utf8"); // Read file synchronously
+        return JSON.parse(data); // Parse JSON content
+    } catch (err) {
+        console.error(`Error reading file ${fileName}:`, err);
+        return { rates: [] }; // Return empty object to prevent crashes
     }
 }
 
 class CurrencyConverter extends EventEmitter {
-
     static calculateRates(usdPrices) {
         let rates = {};
         let usdMap = {};
@@ -25,28 +24,22 @@ class CurrencyConverter extends EventEmitter {
         // Calculate USD conversion rates and store them for cross conversion
         for (let i in usdPrices) {
             let o = usdPrices[i];
-            let sym = o['asset_id_quote'];
-            let usdRate = o['rate'];
+            let sym = o["asset_id_quote"];
+            let usdRate = o["rate"];
 
             rates[`USD-${sym}`] = usdRate;
             rates[`${sym}-USD`] = 1 / usdRate;
             usdMap[sym] = usdRate;
         }
 
-    
         // Calculate direct crypto-to-crypto conversion rates
         let symbols = Object.keys(usdMap);
         for (let from of symbols) {
             for (let to of symbols) {
-                 
                 if (from !== to) {
                     let tag = `${from}-${to}`;
-                    // ***YOUR CODE HERE***
-                // set the rates for trading different cryptocurrencies directly,
-                // calculating the relative prices based off of their USD prices.
-                // For example, if `sym` is "BTC", calculate the values for
-                // "BTC-ETH", "ETH-BTC", "BTC-EOS", "EOS-BTC", etc.
-                    
+                    // Calculate conversion rate based on USD prices
+                    rates[tag] = usdMap[to] / usdMap[from];
                 }
             }
         }
@@ -77,28 +70,23 @@ class CurrencyConverter extends EventEmitter {
                 return;
             }
             console.log(`Updating ${sym} price to ${usdPrice} USD.`);
-            
 
             // Update USD rates
-            // complete the equality 
-             // ***YOUR CODE HERE***
-            this.rates[`USD-${sym}`] = ;
-            this.rates[`${sym}-USD`] = ;
-          
+            this.rates[`USD-${sym}`] = usdPrice;
+            this.rates[`${sym}-USD`] = 1 / usdPrice;
 
             // Recalculate all crypto-to-crypto rates
             const symbols = Object.keys(this.rates)
-                .filter(key => key.startsWith('USD-'))
-                .map(key => key.split('-')[1]);
+                .filter((key) => key.startsWith("USD-"))
+                .map((key) => key.split("-")[1]);
 
-                console.log("symbols" , symbols);
+            console.log("Symbols:", symbols);
 
             for (let from of symbols) {
                 for (let to of symbols) {
                     if (from !== to) {
-
-                        this.rates[`${from}-${to}`] = this.rates[`USD-${to}`] / this.rates[`USD-${from}`];
-
+                        this.rates[`${from}-${to}`] =
+                            this.rates[`USD-${to}`] / this.rates[`USD-${from}`];
                     }
                 }
             }
@@ -115,12 +103,10 @@ class CurrencyConverter extends EventEmitter {
         }
         return rate * amount;
     }
-
 }
 
 // All prices listed are in USD
-// write here your JSON File Path (rates.json)
-const PATH = './rates.json'
+const PATH = "./rates.json";
 let cnv = new CurrencyConverter(readJsonFromFile(PATH));
 
 console.log(cnv.rates);
@@ -131,11 +117,10 @@ function test(amt, from, to) {
     console.log(`${amt} ${from} is worth ${cnv.convert(amt, from, to)} ${to}.`);
 }
 
-test(4000, 'ETH', 'BTC');
-test(200, 'BTC', 'EOS');
+test(4000, "ETH", "BTC");
+test(200, "BTC", "EOS");
 
 console.log("====================================================================");
-
 
 // Test event handling
 cnv.emit(SHOW, { from: "EOS", to: "BTC" });
